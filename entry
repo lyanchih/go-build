@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+SRV=${SRV:=/srv}
+OUTPUT=${OUTPUT:=/_output}
+TARGET=${TARGET=cmds}
+
+if [ -z "$REPO" ]; then
+    echo "Please offer REPO environment variable, like github.com/coreos/etcd"
+    exit 1
+fi
+
+NAME=${NAME:=$REPO}
+NAME=${NAME%%/}
+NAME=${NAME##*/}
+NAME=${NAME,,}
+
+GOREPO="/go/src/$REPO"
+
+[[ $(find $SRV -type f -name '*.go' | wc -l) == 0 ]] && go get $REPO
+
+[ -d "$GOREPO" ] || ( mkdir -p $GOREPO && cp -R $SRV/* $GOREPO)
+
+go get github.com/tools/godep
+
+echo "Got godep package"
+
+cd $GOREPO
+
+godep restore .
+
+echo "Download all dependent package"
+
+go build -o $OUTPUT/$NAME $GOREPO/$TARGET/*.go
+
+echo "$REPO had build binary $NAME into $OUTPUT"
